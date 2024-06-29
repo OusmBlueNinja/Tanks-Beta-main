@@ -3,8 +3,8 @@ import time
 import json
 import os, sys
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-from pygame.locals import *
 import pygame
+from pygame import *
 import random
 
 
@@ -230,7 +230,7 @@ while Running:  # game loop
       launch()
 
     for event in pygame.event.get():  # event loop
-        if event.type == QUIT:
+        if event.type == pygame.QUIT:
             #save.save((player_rect.x), (player_rect.y))
             Running=False
             print(f"{b.WARNING}[WARNING]{b.ENDC} Closeing Launcher")

@@ -7,7 +7,13 @@ import json
 import random
 import sys
 import pygame
+
+
 from pygame.locals import *
+
+
+from data.lib import button # Import Button object 
+from data.lib import PauseMenu # Import Pause Menu object 
 
 # 
 
@@ -46,7 +52,7 @@ def debug(data, sevarity: int):
     elif sevarity == 3:
         print(f"\r{b.FAIL}[ERROR]{b.ENDC} {data}")
     elif sevarity == 4:
-        print(f'\r{b.OKBLUE}[INFO]{b.ENDC} {data}', end="")
+        print(f'\r{b.OKBLUE}[INFO]{b.ENDC} {data}                    ', end="")
     elif DEBUG:
         if sevarity == 1:
             print(f'\r{b.OKCYAN}[DEBUG]{b.ENDC} {data}')
@@ -67,6 +73,7 @@ data2 = json.load(f2)
 resoloution = data2['Resolution']
 playMusic = data2['Music']
 DrawTrees = data2['DrawTrees']
+Volume = data2['Volume']
 width, height = data['config']['resolutions'][resoloution]['width'], data['config']['resolutions'][resoloution]['height']
 WindowName = data['config']['name']
 Version = data['config']['version']
@@ -133,7 +140,7 @@ try:
     
   
     pygame.mixer.music.load(f'{path}{songs[random.randint(0,(len(songs)-1))]}')
-    pygame.mixer.music.set_volume(0.2)
+    pygame.mixer.music.set_volume(Volume)
     
     pygame.mixer.music.play()  
     debug(f"Songs Loaded", 1)
@@ -181,17 +188,28 @@ assetList = [
                 ["dirt", "world"],
                 ["Barrels", "world"],
                 ["barrelGreen_up", "world"],
-                ["tracksSmall","entities"]
+                ["tracksSmall","entities"],
+                ["Paused-Old", "game"]
                 
             ]
+
+
+
+
 
 
 # Filename | folder name | Frame Size | Frame Length
 AnimationAssetList = [
     ["Explosions", "world", 96, 12],
+    ["ERROR", "world", 96, 12],
+    ["Dust", "world", 96, 12],
+    ["Flame", "world", 96, 50],
 ]
 
 logo = pygame.image.load(f'{path}//assets//images//WindowLogo.png')
+
+
+    
 
 pygame.display.set_icon(logo)
 
@@ -199,8 +217,12 @@ pygame.display.set_icon(logo)
 for i in range(len(assetList)):
     debug(f"Loading \x1b[38;5;26m{assetList[i][0]}", 1)
     try:
-        allAssets.append(pygame.image.load(
-            f'{path}//{assets}//{images}//{assetList[i][1]}//{assetList[i][0]}.png'))
+        if assetList[i][1] == "game":
+            allAssets.append(pygame.image.load(
+                f'{path}//{assets}//{images}//{assetList[i][0]}.png'))
+        else:   
+            allAssets.append(pygame.image.load(
+                f'{path}//{assets}//{images}//{assetList[i][1]}//{assetList[i][0]}.png'))
     except:
         debug(f'Unable to find {assetList[i][0]}', 3)
 
@@ -238,6 +260,52 @@ FX = [
     ]
 
 
+  
+  
+def DrawDebugInfo():
+    if DEBUG:
+            GUIdebug.NewFrame()
+            GUIdebug.drawDebugText("DEBUG MENU", False)
+            GUIdebug.drawDebugText(round(FPS), Text="FPS")
+            GUIdebug.drawDebugText(objects)
+            GUIdebug.drawDebugText(f"x: {round(scroll[0])} y:{round(scroll[1])}")
+            GUIdebug.drawDebugText(f"{len(rockLock)}")
+            GUIdebug.drawDebugText(f"{round(dt,5)}")
+            GUIdebug.drawDebugText(f"{len(ActiveAnimations)}")
+            GUIdebug.drawDebugText(f"Keys: {''.join(keysDown)}")
+
+    if FPS < 25:
+        GUIdebug.drawDebugText(f"LOW FPS")
+        
+        
+# takes a screenshow and returns it as a image 
+def Pause_screenshot():
+    """
+    Captures a screenshot of the Pygame display, resizing it to match the current display size.
+
+    Returns:
+        pygame.Surface: The resized screenshot image.
+    """
+
+    #debug("Saving Image", 1)
+
+    # Get the current display surface and its dimensions
+    screen = pygame.display.get_surface()
+    width, height = screen.get_size()
+
+    # Create a new Surface with the same dimensions as the display
+    screenshot = pygame.Surface((width, height))
+
+    # Blit the original display onto the new screenshot Surface, effectively resizing it
+    screenshot.blit(screen, (0, 0))
+
+    # Save the screenshot (optional)
+    pygame.image.save(screenshot, f"{path}//assets//PauseUnderlay.jpg")
+
+    #debug("Screenshot Captured", 1)  # Informative message
+
+    return screenshot
+
 
 def PlaySoundEffect(id:int):
     try:
@@ -246,7 +314,7 @@ def PlaySoundEffect(id:int):
         debug(f'Unable to Play Sound Effect {FX[id]} | {e}', 3)
 
 
-pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.set_volume(Volume)
 
 
 ###########################
@@ -457,7 +525,7 @@ runTime = 0
 
 TimeNow = time.time()
 Load = TimeNow - LoadTime
-debug(f"Loaded in {Load} Seconds", 1)
+debug(f"Loaded in {Load} Seconds\n", 4)
 
 
 
@@ -562,7 +630,7 @@ def get_player_world_position(player_screen_x, player_screen_y, scroll):
 
 
     
-
+paused = False
 
 TestVar = 0
 while True:  # game loop
@@ -574,7 +642,7 @@ while True:  # game loop
     TimeThen = time.time()
     FPS = clock.get_fps()
     
-    display.fill((189,137,88))  # clear screen by filling it with blue
+    display.fill((189,137,88))  # clear screen by filling it with brown
 
     #mousePos = pygame.mouse.get_pos()
     # debug(mousePos)
@@ -587,31 +655,53 @@ while True:  # game loop
             pygame.quit()
             sys.exit()
 
+    
+    
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_ESCAPE:
+                paused = not paused
+                debug("Paused", 4)
+                
+        
+                
+                
     keys = pygame.key.get_pressed()
     keysDown = ["   ","  ","  ","  "]
     angle = 0
-    if keys[pygame.K_a]:
-        angle -= 90
-        scroll[0] -= Velocity * dt
-        keysDown[1] = "a"
-        player.rotateImage(2)
-    if keys[pygame.K_d]:
-        angle += 90
-        scroll[0] += Velocity * dt
-        keysDown[3] = "d"
-        player.rotateImage(6)
-    if keys[pygame.K_w]:
-        angle -= 0
-        scroll[1] -= Velocity * dt
-        keysDown[0] =  "w"
-        player.rotateImage(0)
-    if keys[pygame.K_s]:
-        angle -= 180
-        scroll[1] += Velocity * dt  
-        keysDown[2] =  "s"
-        player.rotateImage(4)
-    if keys == None:
-        player.rotateImage(0)
+    
+    
+    
+    
+ # ------------------------------------------------------- Start Pause ----------------------------------------------------       
+    
+        
+# ------------------------------------------------------- End Pause ----------------------------------------------------        
+        
+    if pygame.mouse.get_visible():
+        pygame.mouse.set_visible(False)
+    if not paused:
+        if keys[pygame.K_a]:
+            angle -= 90
+            scroll[0] -= Velocity * dt
+            keysDown[1] = "a"
+            player.rotateImage(2)
+        if keys[pygame.K_d]:
+            angle += 90
+            scroll[0] += Velocity * dt
+            keysDown[3] = "d"
+            player.rotateImage(6)
+        if keys[pygame.K_w]:
+            angle -= 0
+            scroll[1] -= Velocity * dt
+            keysDown[0] =  "w"
+            player.rotateImage(0)
+        if keys[pygame.K_s]:
+            angle -= 180
+            scroll[1] += Velocity * dt  
+            keysDown[2] =  "s"
+            player.rotateImage(4)
+        if keys == None:
+            player.rotateImage(0)
         
     
         
@@ -638,25 +728,31 @@ while True:  # game loop
     
     #Draw Trees  
     
-    if 1:
-        for x in range(int(4000 / allAssets[1].get_width())):
-            for y in range(int(4000 / allAssets[1].get_height())):
+    if DrawTrees:
+        StaticHeight = allAssets[1].get_height()
+        staticWidth = allAssets[1].get_width()
+        for x in range(int(4000 / staticWidth)):
+            for y in range(int(4000 / StaticHeight)):
                 x2 = x
                 y2 = y
-                x2 = x2 * allAssets[1].get_width()
+                x2 = x2 * staticWidth
 
-                y2 = y2 * allAssets[1].get_height()
+                y2 = y2 * StaticHeight
                 
                 if treepos(((x2)), ((y2))):
                     
 
-                    if x2-scroll[0] > 0 - allAssets[1].get_width():
-                        if y2-scroll[1] > 0 - allAssets[1].get_height():
-                            if (x2-scroll[0]) - 125< RenderDistance[0] - allAssets[1].get_width():
-                                if (y2-scroll[1]) - 125 < RenderDistance[1] - allAssets[1].get_height():
+                    if x2-scroll[0] > 0 - staticWidth:
+                        if y2-scroll[1] > 0 - StaticHeight:
+                            if (x2-scroll[0]) - 125< RenderDistance[0] - staticWidth:
+                                if (y2-scroll[1]) - 125 < RenderDistance[1] - StaticHeight:
 
                                         objects += 1
                                         pygame.Surface.blit(display, allAssets[1], (((x2-scroll[0])), ((y2-scroll[1]))))
+                                        
+                                        
+                                        
+                                        
 
         
     for i in range(len(barrelList)):
@@ -694,7 +790,7 @@ while True:  # game loop
         try:
           currentSong= random.randint(0,(len(songs)-1))
           pygame.mixer.music.load(f'{path}{songs[currentSong]}')
-          pygame.mixer.music.set_volume(0.2)
+          pygame.mixer.music.set_volume(Volume)
           
           # ___________________________
           if playMusic:
@@ -746,6 +842,8 @@ while True:  # game loop
     # Flag to track if an animation is already spawning
     spawn_animation = False
     is_world_coordinates = True  # Initial state assuming screen coordinates by default
+    
+        
 
 
     if pygame.mouse.get_pressed()[0] == 1 and not spawn_animation:
@@ -788,15 +886,36 @@ while True:  # game loop
         animationFrame = animation[3]
         animationTotalFrames = animation[4]
         world_position = animation[1]  # Access world position from data
+        if animation[5] == "SHOT":
 
-        # Calculate screen position based on world position and scroll
-        screen_position = [world_position[0] - scroll[0] - AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)].get_width()/2, world_position[1] - scroll[1] - AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)].get_height()/2]
-
-        try:
-            # Use screen position for blitting (considering scroll)
-            pygame.Surface.blit(display, AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)], screen_position)
-        except IndexError as e:
-            debug(f"Invalid Animation Time {(round(animationFrame/animationSpeed)-1)}", 3)
+                # Calculate screen position based on world position and scroll
+                try:
+                    screen_position = [world_position[0] - scroll[0] - AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)].get_width()/2, world_position[1] - scroll[1] - AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)].get_height()/2]
+                except:
+                    pass
+                try:
+                    # Use screen position for blitting (considering scroll)
+                    pygame.Surface.blit(display, AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)], screen_position)
+                except IndexError as e:
+                    debug(f"Invalid Animation Time {(round(animationFrame/animationSpeed)-1)}", 3)
+                    
+        elif animation[5] == "FLAME":
+                try:
+                    screen_position = [world_position[0] - scroll[0] - AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)].get_width()/2, world_position[1] - scroll[1] - AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)].get_height()/2]
+                except:
+                    pass
+                try:
+                    # Use screen position for blitting (considering scroll)
+                    pygame.Surface.blit(display, AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)], screen_position)
+                except IndexError as e:
+                    debug(f"Invalid Animation Time {(round(animationFrame/animationSpeed)-1)}", 3)
+        else:
+            aminationPosition = animation[1]
+            try:
+                    # Use screen position for blitting (considering scroll)
+                pygame.Surface.blit(display, AnimationFrameList[animationIndex][(round(animationFrame/animationSpeed)-1)], aminationPosition)
+            except IndexError as e:
+                debug(f"Invalid Animation Time {(round(animationFrame/animationSpeed)-1)}", 3)
 
         
             
@@ -820,22 +939,31 @@ while True:  # game loop
     
     #pygame.Surface.blit(display, AnimationAssets[1], (200,100))
     
+    if not paused:
+        DrawDebugInfo()
     
-    if DEBUG:
-        GUIdebug.NewFrame()
-        GUIdebug.drawDebugText("DEBUG MENU", False)
-        GUIdebug.drawDebugText(round(FPS), Text="FPS")
-        GUIdebug.drawDebugText(objects)
-        GUIdebug.drawDebugText(f"x: {round(scroll[0])} y:{round(scroll[1])}")
-        GUIdebug.drawDebugText(f"{len(rockLock)}")
-        GUIdebug.drawDebugText(f"{round(dt,5)}")
-        GUIdebug.drawDebugText(f"{len(ActiveAnimations)}")
-        GUIdebug.drawDebugText(f"Keys: {''.join(keysDown)}")
-        
-    if FPS < 25:
-        GUIdebug.drawDebugText(f"LOW FPS")
+        player.drawHP()
     
-    player.drawHP()
+    
+
+    PauseLoop = False
+    while paused:
+      paused = PauseMenu.PauseGameLoop(display, allAssets[9], paused)
+      FPS = clock.get_fps()
+      DrawDebugInfo()
+      screen.blit(pygame.transform.scale(display, WINDOW_SIZE), (0, 0))
+      pygame.display.update()
+      clock.tick()
+
+
+
+    if not pygame.mixer.music.get_busy():
+            pygame.mixer.music.unpause()  
+
+            
+    PauseLoop = False     
+    
+    
     
     screen.blit(pygame.transform.scale(display, WINDOW_SIZE), (0, 0))
     pygame.display.update()

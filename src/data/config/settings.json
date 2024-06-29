@@ -1,6 +1,7 @@
 {
   "Resolution":"480",
-  "Music":true,
-  "DrawTrees":false,
+  "Music":false,
+  "Volume":0.2,
+  "DrawTrees":true,
   "HideCursor":false
 }

@@ -11,7 +11,7 @@
         }
       },
       "name": "Tanks",
-      "version": "3.8-Beta",
+      "version": "3.9-Beta",
       "Render-Distance":[720,480],
       "debug":true,
       "trees":200
